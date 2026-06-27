@@ -296,6 +296,9 @@
         #CASE {"nebel"} {
             modus_nebel
         };
+        #CASE {"ulabyrinth"} {
+            modus_ulabyrinth
+        }
         #DEFAULT {
             #IF { @_an_aus{region_modus_function} } {
                 $region_modus_function

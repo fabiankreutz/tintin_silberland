@@ -1,0 +1,205 @@
+#NOP { /**
+ *  @class  ulabyrinth
+ *  @brief  Erlaubt spontane Erstellung des Labyrinths
+Du findest Dich auf einmal in einer kleinen Kammer wieder. Recht kuehl ist es
+hier. Eine kleine Liegestelle, ein kleiner Tisch und ein paar Stuehle sind das
+einzige was mitten in der Kammer steht. An den Waenden stehen noch ein paar
+Regale herum. Verlassen sieht die Kammer aber wirklich nicht aus. Aengstlich
+schaust Du Dich um. Es scheint so, als ob die Eigentuemer jeden Moment kommen
+koennten.
+
+ */}
+
+#CLASS ulabyrinth KILL
+#CLASS ulabyrinth OPEN
+
+#ECHO {<029>-- <188>%s<288> geladen<099>} {region/unterwelt_labyrinth.tin}
+
+#VAR region_map_create_room_function ulabyrinth_map_create_room;
+#VAR region_map_enter_room_function ulabyrinth_map_enter_room;
+
+#VAR exploremodus {0}
+
+#EVENT {MAP ENTER ROOM 1000} {
+    #MAP READ maps/silberland.map;
+    #MAP GOTO 4998;
+    #CLASS ulabyrinth KILL
+}
+
+#ALIAS {ulabyrinth_map_enter_room} {
+    #IF { $exploremodus == 1 } {
+        #VAR room_visited[%1] 1;
+        #MAP SET ROOMTERRAIN hoehle;
+        #MAP SET ROOMCOLOR;
+        #MAP GET ROOMNAME roomname;
+        #REGEXP {$roomname} {{raum_([0-9]+)_([0-9]+)_([0-9]+)}} {
+            #VAR room_grid[x] &2;
+            #VAR room_grid[y] &3;
+            #VAR room_grid[z] &4;
+        };
+        #MAP GET ROOMSYMBOL roomsymbol;
+        #MAP GET ROOMNOTE roomnote;
+        #IF {"$roomsymbol" == "?" && "$roomnote" == "unbesucht"}
+        {
+            #MAP SET ROOMSYMBOL;
+            #MAP SET ROOMNOTE;
+            #MAP ROOMFLAG STATIC ON
+        }; 
+    };
+
+};
+
+#ALIAS {ulabyrinth_map_create_room} {
+    #IF { %0 == 0 } {
+        #RETURN
+    };
+    #IF { !&room_visited[%1] && %1 != 1000 } {
+        #MAP SET ROOMNAME {@query_room_name{$laby_dir}} {%1};
+        #MAP SET ROOMCOLOR {<bbb>} {%1};
+        #MAP SET ROOMSYMBOL {?} {%1};
+        #MAP SET ROOMNOTE {unbesucht} {%1}
+    }
+} {5};
+
+#NOP { /**
+ *  @fn     uexplore
+ *  @brief  Erstellen eines neuen Labyrinths
+ *
+ *  @todo   während des Erkundens nur existierende Ausgänge zulassen
+ *  @todo   Abbrechen ohne zu speichern
+ *  @todo   Speicher Kommando
+ *  @todo   Anzahl der unbesuchten Raeume wahrend des Erkundens
+ */};
+
+#ALIAS {uexplore} {
+    #SWITCH { "%1" } {
+        #CASE { "start" } {
+            #ECHO {starte Erkundungsmodus ...};
+            #VAR update_map[area] {unterwelt-labyrinth};
+            #VAR room_grid {{x}{7}{y}{1}{z}{1}};
+            #VAR room_visited {{1}{1}};
+
+            #MAP CREATE;
+            #MAP FLAG DIRECTION OFF;
+            #MAP COLOR EXITS <bcb>;
+            #MAP TERRAIN hoehle <aca>^ SPARSE;
+            #MAP AT 1 {
+                #MAP SET ROOMNAME {raum_07_01_01};
+                #MAP SET ROOMSYMBOL A;
+                #MAP DIG {n} {1000};
+            };
+            #MAP GOTO 1;
+            #SEND {schau};
+            #DELAY {1} {
+                #MAP ROOMFLAG STATIC ON
+            };
+            #VAR exploremodus 1;
+            
+            modus_setzen ulabyrinth
+        };
+        #CASE { "continue" } {
+            #VAR exploremodus 1;
+            modus_setzen ulabyrinth
+        };
+        #CASE { "ende" } {
+            #MAP READ maps/silberland.map;
+            #MAP GOTO 4998;
+            #CLASS ulabyrinth KILL
+        };
+        #CASE { "stop" } {
+            modus_setzen;
+            #ECHO {stoppe Erkundungsmodus ...};
+            #VAR exploremodus 0;
+            #UNVAR update_map[area];
+            #MAP FLAG STATIC ON;
+            #MAP WRITE maps/unterwelt_labyrinth.map
+        };
+        #CASE { "status" } {
+            #MAP LIST {ROOMNOTE} {unbesucht} {VARIABLE} {room_notvisited};
+            #IF { &room_notvisited[] } {
+                #IF { &room_notvisited[] > 1 } {
+                    #ECHO {Es gibt noch %s unbesuchte Raeume im Labyrinth.} {&room_notvisited[]}
+                };
+                #ELSE {
+                    #ECHO {Es gibt nur noch einen unbesuchten Raum im Wald.}
+                }
+            };
+            #ELSE {
+                #ECHO {Du hast bereits alle Raeume im Wald besucht.}
+            }
+        };
+        #DEFAULT {
+            #ECHO {Anwendung: uexplore [Option]\n};
+            #ECHO {Startet die Aufzeichnung eines neuen Labyrinths.\n};
+            #ECHO {  start      startet eine neue Aufzeichnung};
+            #ECHO {  stop       stoppt und speichert die gegenwaertige Aufzeichnung};
+            #ECHO {  status     Anzahl von unbesuchten Raeumen}
+        }
+    }
+}
+
+
+#FUNCTION {query_room_name} {
+    #VAR tmp_grid[x] $room_grid[x];
+    #VAR tmp_grid[y] $room_grid[y];
+    #VAR tmp_grid[z] $room_grid[z];
+    #SWITCH { "%0" } {
+        #CASE { "o" } {
+            #MATH tmp_grid[x] {$room_grid[x] + 1}
+        };
+        #CASE { "s" } {
+            #MATH tmp_grid[y] {$room_grid[y] + 1}
+        };
+        #CASE { "w" } {
+            #MATH tmp_grid[x] {$room_grid[x] - 1}
+        };
+        #CASE { "n" } {
+            #MATH tmp_grid[y] {$room_grid[y] - 1}
+        };
+        #CASE { "ob" } {
+            #MATH tmp_grid[z] {$room_grid[z] - 1};
+        };
+        #CASE { "u" } {
+            #MATH tmp_grid[z] {$room_grid[z] + 1};
+        };
+    };
+
+    #FORMAT room_name {raum_%+2s_%+2s_%+2s} {$tmp_grid[x]} {$tmp_grid[y]} {$tmp_grid[z]};
+    #REPLACE room_name { } {0};
+
+    #RETURN $room_name
+}
+
+#ALIAS {modus_ulabyrinth} {
+    raum_ausgaenge @text_to_list{$ausgaenge_lang;((nord|sued|west|ost|ob|unt)en)};
+}
+
+#ALIAS {raum_ausgaenge} {
+    #LOCAL tmp {%0};
+    #MAP GET {ROOMDESC} this_room;
+    #FOREACH {$tmp[%*]} loop {
+        #VAR laby_dir ob;
+        #REGEXP {$loop} {{^(.)[^b]+$}} {
+            #VAR laby_dir &2;
+        };
+        #IF { $this_room == "ausgang" && $laby_dir == "n" } {
+          #CONTINUE;
+        };
+        #MAP LIST {ROOMNAME} {@query_room_name{$laby_dir}} {VARIABLE} {bekannter_raum};
+        #IF { *bekannter_raum[+1] } {
+            #MAP LINK $laby_dir *bekannter_raum[+1] BOTH
+        };
+        #ELSE {
+            #MAP DIG $laby_dir
+        }
+    };
+    def_map_enter_room
+}
+
+#ACTION {Die beiden Gnome schnappen Dich, nehmen Dir die Karte weg %+} {
+    #MAP READ maps/silberland.map;
+    #MAP GOTO 4998;
+    #CLASS ulabyrinth KILL
+}
+
+#CLASS ulabyrinth CLOSE
