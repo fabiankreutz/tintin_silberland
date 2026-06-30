@@ -139,6 +139,7 @@ add_help {zeigen} {brunnen}
     }
 } {6}
 
+
 #NOP { /**
  *  @fn font
  *  @brief  setzt eine Fontaene auf die Karte
@@ -149,38 +150,16 @@ add_help {zeigen} {brunnen}
 #ALIAS {font} {
     #IF { "%1" == "" } {
         #IF { &{fontaene} } {
+            #VAR farbe {$ampullenFarbCodes[${fontaene}e]};
             #MAP SET ROOMSYMBOL #;
-            #SWITCH { "$fontaene" } {
-                #CASE { "gruen" } {
-                    #MAP SET ROOMNAME %1;
-                    #MAP SET ROOMCOLOR <afa>
-                };
-                #CASE { "gelb" } {
-                    #MAP SET ROOMNAME %1;
-                    #MAP SET ROOMCOLOR <ffa>
-                };
-                #CASE {"rot"} {
-                    #MAP SET ROOMNAME %1;
-                    #MAP SET ROOMCOLOR <faa>
-                };
-                #CASE {"blau"} {
-                    #MAP SET ROOMNAME %1;
-                    #MAP SET ROOMCOLOR <abf>
-                };
-                #CASE {"orang"} {
-                    #MAP SET ROOMNAME %1;
-                    #MAP SET ROOMCOLOR <fca>
-                };
-                #CASE {"violett"} {
-                    #MAP SET ROOMNAME %1;
-                    #MAP SET ROOMCOLOR <faf>
-                }
-            };
-            #ECHO {Setze eine %se Fontaene auf die Karte.} {$fontaene};
-            #UNVAR fontaene
+            #MAP SET ROOMNAME $fontaene;
+            #MAP SET ROOMCOLOR $farbe;
+            #ECHO {Setze eine %s%se Fontaene<088> auf die Karte.} {$farbe} {$fontaene};
+            #UNVAR farbe;
+            #UNVAR fontaene;
         };
         #ELSE {
-            #ECHO {Leider ist keine Fontaene bekannt.}
+            #ECHO {Leider ist keine Fontaene bekannt.};
         };
         #RETURN
     };

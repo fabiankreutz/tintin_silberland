@@ -766,6 +766,44 @@ add_help {fus} {brunnen}
     #SHOWME {     ###############################}
 }
 
+
+#LIST _ampullenFarbenImmerSichtbar CREATE {leere;rote;blaue;gelbe};
+#LIST _ampullenFarbenSonstige CREATE {orange;gruene;violette;gelb-orange;blau-violette;blau-gruene};
+
+#NOP { /**
+ *   @fn     amp
+ *   @brief  Zeigt Report aller Ampullen im Inventar
+ */};
+#ALIAS amp {
+  listInventory {alle ampulle} {ampList};
+  #VAR ampMap {{leere}{0}{rote}{0}{blaue}{0}{gelbe}{0}};
+  #FOREACH {$ampList[%*]} {_eintrag} {
+    #REGEXP {$_eintrag} {eine {.*} Ampulle} {
+      #VAR _farbe {&1};
+      #VAR _menge {0};
+      #VAR _menge ${ampMap[$_farbe]};
+      #MATH ampMap[$_farbe] { $_menge + 1 };
+    };
+  };
+  #ECHO {Ampullen im Inventar:};
+  #FOREACH {$_ampullenFarbenImmerSichtbar[%*]} {_farbe} {
+    #ECHO {%-16s<088>: %d} {@farbig{$_farbe}} {${ampMap[$_farbe]}};
+  };
+  #FOREACH {$_ampullenFarbenSonstige[%*]} {_farbe} {
+    #VAR _menge {0};
+    #VAR _menge ${ampMap[$_farbe]};
+    #IF { $_menge > 0 } {
+      #ECHO {%-16s<088>: %d} {@farbig{$_farbe}} {${ampMap[$_farbe]}};
+    };
+  };
+  #LIST ampList CLEAR;
+  #UNVAR _eintrag;
+  #UNVAR ampList;
+  #UNVAR ampMap;
+  #UNVAR _farbe;
+  #UNVAR _menge;
+};
+
 #CLASS brunnen_command CLOSE
 
 #NOP { /**
